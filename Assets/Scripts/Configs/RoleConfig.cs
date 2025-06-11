@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+
 public class RoleConfig : BaseConfig
 {
     /// <summary>

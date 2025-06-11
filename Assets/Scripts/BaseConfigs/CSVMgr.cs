@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public static class CSVMgr
@@ -12,62 +13,7 @@ public static class CSVMgr
 
     public static void Init()
     {
-        var csvFiles = Resources.LoadAll<TextAsset>("Configs");
-        foreach (var csvFile in csvFiles)
-        {
-            // 通过反射获取类型
-            Type configType = GetConfigTypeByFileName(csvFile.name);
-            if (configType == null)
-            {
-                Debug.LogError($"找不到对应的配置类: {csvFile.name}");
-                continue;
-            }
-
-            try
-            {
-                // 使用反射调用泛型方法
-                var method = typeof(CSVMgr).GetMethod("Load", BindingFlags.Public | BindingFlags.Static);
-                var genericMethod = method.MakeGenericMethod(configType);
-
-                // 获取返回值并转换为对应的Dictionary<string, BaseConfig>
-                var result = genericMethod.Invoke(null, new object[] { csvFile });
-
-                if (result == null)
-                {
-                    Debug.LogError($"加载配置失败，返回值为null: {csvFile.name}");
-                    continue;
-                }
-
-                // 创建目标字典
-                var datas = new Dictionary<string, BaseConfig>();
-
-                // 获取泛型字典类型的GetEnumerator方法
-                var resultType = result.GetType();
-                var enumerator = resultType.GetMethod("GetEnumerator").Invoke(result, null);
-                var enumeratorType = enumerator.GetType();
-                var moveNextMethod = enumeratorType.GetMethod("MoveNext");
-                var currentProperty = enumeratorType.GetProperty("Current");
-
-                // 遍历源字典的所有键值对
-                while ((bool)moveNextMethod.Invoke(enumerator, null))
-                {
-                    var current = currentProperty.GetValue(enumerator);
-                    var keyProperty = current.GetType().GetProperty("Key");
-                    var valueProperty = current.GetType().GetProperty("Value");
-
-                    string key = (string)keyProperty.GetValue(current);
-                    BaseConfig value = (BaseConfig)valueProperty.GetValue(current);
-
-                    datas[key] = value;
-                }
-
-                _csvData[csvFile.name] = datas;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"加载配置时发生异常: {csvFile.name}, 错误: {ex.Message}\n{ex.StackTrace}");
-            }
-        }
+        GeneratedConfigLoader.LoadAllConfigs(_csvData);
 
         Debug.Log($"成功加载配置: {_csvData.Count} 个配置文件");
     }
@@ -110,69 +56,44 @@ public static class CSVMgr
     }
 
     /// <summary>
-    /// 根据文件名获取对应的配置类型
-    /// </summary>
-    /// <param name="fileName">文件名（不含扩展名）</param>
-    /// <returns>对应的配置类型</returns>
-    public static Type GetConfigTypeByFileName(string fileName)
-    {
-        // 获取所有程序集
-        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-
-        foreach (var assembly in assemblies)
-        {
-            // 查找与文件名匹配的类型
-            Type type = assembly.GetTypes()
-                .FirstOrDefault(t => t.IsClass &&
-                                    !t.IsAbstract &&
-                                    t.IsSubclassOf(typeof(BaseConfig)) &&
-                                    string.Equals(t.Name, fileName, StringComparison.OrdinalIgnoreCase));
-
-            if (type != null)
-            {
-                return type;
-            }
-        }
-
-        Debug.LogWarning($"未找到与 {fileName} 对应的配置类");
-        return null;
-    }
-
-    /// <summary>
-    /// 加载CSV文件并转换为配置对象字典
+    /// 加载CSV文件并转换为配置对象列表
     /// </summary>
     /// <typeparam name="T">配置类型</typeparam>
     /// <param name="csvFile">CSV文件</param>
-    /// <returns>以ID为键的配置对象字典</returns>
-    public static Dictionary<string, T> Load<T>(TextAsset csvFile) where T : BaseConfig
+    /// <returns>配置对象列表</returns>
+    public static List<T> Load<T>(TextAsset csvFile) where T : BaseConfig
     {
-        var lines = csvFile.text.Split('\n').Skip(3);
-        var fields = csvFile.text.Split('\n')[1].Split(',');
-        var types = csvFile.text.Split('\n')[2].Split(',');
-        var datas = new Dictionary<string, T>();
-
-        foreach (var line in lines)
+        var lines = csvFile.text.Split('\n');
+        if (lines.Length <= 3)
         {
-            if (string.IsNullOrWhiteSpace(line)) continue;
+            Debug.LogWarning($"CSV文件格式不正确或为空: {csvFile.name}");
+            return new List<T>();
+        }
 
-            var rawValues = SplitCSVLine(line);
-            var obj = Activator.CreateInstance<T>();
+        var dataLines = lines.Skip(3).Where(line => !string.IsNullOrWhiteSpace(line)).ToArray();
+        var fields = lines[1].Split(',');
+        var types = lines[2].Split(',');
 
-            for (int i = 0; i < fields.Length && i < rawValues.Length; i++)
-            {
-                string val = rawValues[i];
-                string type = types[i];
-                string field = fields[i];
-                SetValue(obj, field, val, type);
-            }
+        // 创建结果数组
+        var results = new T[dataLines.Length];
 
-            if (!string.IsNullOrEmpty(obj.id))
+        // 并行处理每一行
+        Parallel.For(0, dataLines.Length, i =>
+        {
+            results[i] = ParseLine<T>(dataLines[i], fields, types);
+        });
+
+        // 收集结果
+        var datas = new List<T>(results.Length);
+        foreach (var obj in results)
+        {
+            if (obj != null)
             {
-                datas[obj.id] = obj;
-            }
-            else
-            {
-                Debug.LogWarning($"配置对象ID为空，无法添加到字典中: {typeof(T).Name}");
+                if (string.IsNullOrEmpty(obj.id))
+                {
+                    Debug.LogWarning($"配置对象ID为空: {typeof(T).Name}");
+                }
+                datas.Add(obj);
             }
         }
 
@@ -180,35 +101,94 @@ public static class CSVMgr
     }
 
     /// <summary>
-    /// 分割CSV行
+    /// 解析单行CSV数据
+    /// </summary>
+    /// <typeparam name="T">配置类型</typeparam>
+    /// <param name="line">CSV行</param>
+    /// <param name="fields">字段名数组</param>
+    /// <param name="types">类型名数组</param>
+    /// <returns>解析后的配置对象</returns>
+    private static T ParseLine<T>(string line, string[] fields, string[] types) where T : BaseConfig
+    {
+        try
+        {
+            var rawValues = SplitCSVLine(line);
+            var obj = Activator.CreateInstance<T>();
+
+            for (int i = 0; i < fields.Length && i < rawValues.Count; i++)
+            {
+                string val = rawValues[i];
+                string type = types[i];
+                string field = fields[i];
+                SetValue(obj, field, val, type);
+            }
+
+            return obj;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"解析CSV行时发生错误: {ex}\n行内容: {line}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 分割 CSV 行，正确处理引号
     /// </summary>
     /// <param name="line">CSV行</param>
-    /// <returns>分割后的字符串数组</returns>
-    private static string[] SplitCSVLine(string line)
+    /// <returns>分割后的字符串列表</returns>
+    private static List<string> SplitCSVLine(string line)
     {
-        var list = new List<string>();
+        var result = new List<string>();
         var sb = new StringBuilder();
         bool inQuote = false;
 
-        foreach (char c in line)
+        for (int i = 0; i < line.Length; i++)
         {
+            char c = line[i];
+
+            // 处理双引号（转义的引号）
             if (c == '"')
             {
-                inQuote = !inQuote;
+                if (inQuote)
+                {
+                    // 检查是否是转义的双引号 ("")
+                    if (i + 1 < line.Length && line[i + 1] == '"')
+                    {
+                        sb.Append('"');
+                        i++; // 跳过下一个引号
+                    }
+                    else
+                    {
+                        // 引号结束
+                        inQuote = false;
+                    }
+                }
+                else
+                {
+                    // 引号开始
+                    inQuote = true;
+                }
+                continue;
             }
-            else if (c == ',' && !inQuote)
+
+            // 处理逗号分隔符
+            if (c == ',' && !inQuote)
             {
-                list.Add(sb.ToString());
+                // 添加当前字段并重置StringBuilder
+                result.Add(sb.ToString());
                 sb.Clear();
+                continue;
             }
-            else
-            {
-                sb.Append(c);
-            }
+
+            // 正常字符，直接添加
+            sb.Append(c);
         }
 
-        list.Add(sb.ToString());
-        return list.ToArray();
+        // 添加最后一个字段
+        result.Add(sb.ToString());
+
+        return result;
     }
 
     /// <summary>

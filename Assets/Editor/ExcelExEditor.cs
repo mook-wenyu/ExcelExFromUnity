@@ -37,7 +37,11 @@ public class ExcelExEditor
             ConvertExcelToCSV(excelFile);
         }
 
+        ConfigCodeGenerator.GenerateConfigLoader();
+
         AssetDatabase.Refresh();
+
+        Debug.Log("完成导出！");
     }
 
     /// <summary>
@@ -74,9 +78,12 @@ public class ExcelExEditor
                     // 获取当前单元格的值，并替换掉逗号和换行符
                     var cell = row.GetCell(cellIndex)?.ToString() ?? "";
                     // 替换逗号和所有类型的换行符
-                    cell = cell.Replace(",", "，").Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ");
-                    // 如果单元格的值包含空格，则用双引号包裹
-                    if (cell.Contains(" "))
+                    cell = cell.Replace("\"", "\"\"")
+                        .Replace("\r\n", " ")
+                        .Replace("\n", " ")
+                        .Replace("\r", " ");
+                    // 如果单元格的值包含空格或逗号，则用双引号包裹
+                    if (cell.Contains(" ") || cell.Contains(",") || cell.Contains("\"\""))
                     {
                         cell = $"\"{cell}\"";
                     }
@@ -132,6 +139,7 @@ public class ExcelExEditor
             sb.AppendLine("using UnityEngine;");
         }
 
+        sb.AppendLine();
         sb.AppendLine($"public class {className} : BaseConfig");
         sb.AppendLine("{");
 
@@ -145,7 +153,7 @@ public class ExcelExEditor
             }
             if (i == types.Length - 1)
             {
-                field = field.TrimEnd('\r', '\n');  // 使用TrimEnd替代Remove
+                field = field.TrimEnd('\r', '\n');
             }
             string comment = fieldComments != null && i < fieldComments.Length ? fieldComments[i].Trim() : null;
             if (!string.IsNullOrEmpty(comment))
@@ -161,8 +169,6 @@ public class ExcelExEditor
 
         var classPath = Path.Combine(Application.dataPath, "Scripts", "Configs", $"{className}.cs");
         File.WriteAllText(classPath, sb.ToString(), Encoding.UTF8);
-
-        AssetDatabase.Refresh();
     }
 
     /// <summary>
