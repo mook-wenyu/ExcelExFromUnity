@@ -227,7 +227,7 @@ public static class CSVMgr
             }
 
             // 分割值字符串，处理可能的中文逗号
-            string[] elements = val.Replace('，', ',').Split(',');
+            string[] elements = val.Split(',');
 
             // 根据元素类型解析数组
             object arrayValue = ParseArray(elements, elementType);
@@ -309,7 +309,7 @@ public static class CSVMgr
     {
         s = s.Trim().Trim('"'); // 去除空格和引号
         // 支持中文逗号和英文逗号
-        var parts = s.Replace('，', ',').Split(',');
+        var parts = s.Split(',');
 
         if (parts.Length != 3) return Vector3.zero;
 
@@ -329,7 +329,7 @@ public static class CSVMgr
     {
         s = s.Trim().Trim('"'); // 去除空格和引号
         // 支持中文逗号和英文逗号
-        var parts = s.Replace('，', ',').Split(',');
+        var parts = s.Split(',');
 
         if (parts.Length != 2) return Vector2.zero;
 

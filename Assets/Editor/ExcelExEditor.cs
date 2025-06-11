@@ -41,7 +41,10 @@ public class ExcelExEditor
 
         AssetDatabase.Refresh();
 
-        Debug.Log("完成导出！");
+        EditorApplication.delayCall += () =>
+        {
+            Debug.Log("完成导出！");
+        };
     }
 
     /// <summary>

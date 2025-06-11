@@ -2,9 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Test : MonoBehaviour
 {
+    public Text text;
     // Start is called before the first frame update
     void Start()
     {
@@ -13,17 +15,9 @@ public class Test : MonoBehaviour
         var sb = new StringBuilder();
         foreach (var item in data)
         {
-            sb.AppendLine(item.id);
-            sb.AppendLine(item.name);
-            sb.AppendLine(item.hp.ToString());
-            sb.AppendLine(item.pos.x.ToString());
-            sb.AppendLine(item.pos.y.ToString());
-            sb.AppendLine(item.pos.z.ToString());
-            sb.AppendLine(item.target.x.ToString());
-            sb.AppendLine(item.target.y.ToString());
+            sb.AppendLine($"Id:{item.id} Name:{item.name} Hp:{item.hp} Pos:{item.pos.x},{item.pos.y},{item.pos.z} Target:{item.target.x},{item.target.y}");
         }
-        Debug.Log(sb.ToString());
-        Debug.Log(CSVMgr.Get<RoleConfig>("1002").name);
+        text.text = $"{CSVMgr.Get<RoleConfig>("1002").name} \n\n{sb.ToString()}";
     }
 
 }
