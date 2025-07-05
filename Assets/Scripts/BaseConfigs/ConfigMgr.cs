@@ -49,7 +49,7 @@ public static class ConfigMgr
     /// <typeparam name="T">配置类型</typeparam>
     /// <returns>配置数据列表</returns>
     [Preserve]
-    public static IList<T> GetAll<T>() where T : BaseConfig
+    public static List<T> GetAll<T>() where T : BaseConfig
     {
         string configName = typeof(T).Name;
 

@@ -260,7 +260,6 @@ public class ExcelExEditor
                 var config = JsonConvert.DeserializeObject(sb.ToString(), type) as BaseConfig;
                 if (config == null || string.IsNullOrEmpty(config.id)) continue;
                 rawDataDict.Add(config.id, config);
-                Debug.Log(config.id);
             }
             catch (Exception ex)
             {
