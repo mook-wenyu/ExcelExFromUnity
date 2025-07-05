@@ -1,7 +1,4 @@
-﻿using System;
-using UnityEngine;
-
-public class RoleConfig : BaseConfig
+﻿public class RoleConfig : BaseConfig
 {
     /// <summary>
     /// 名字
@@ -12,11 +9,19 @@ public class RoleConfig : BaseConfig
     /// </summary>
     public int hp;
     /// <summary>
+    /// 死亡
+    /// </summary>
+    public bool die;
+    /// <summary>
     /// 初始位置
     /// </summary>
-    public Vector3 pos;
+    public float[] pos;
     /// <summary>
     /// 目标位置
     /// </summary>
-    public Vector2 target;
+    public float[] target;
+    /// <summary>
+    /// 队友
+    /// </summary>
+    public string[] duiyou;
 }

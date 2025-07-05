@@ -1,28 +1,50 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text;
-using NPOI.HSSF.UserModel;
-using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
+using ExcelDataReader;
+using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
+/// <summary>
+/// 字段信息
+/// </summary>
+public class PropertyInfo
+{
+    public string Name { get; set; }
+    public string Type { get; set; }
+    public string Comment { get; set; }
+}
+
+public class ExcelConfig
+{
+    public string ConfigName { get; set; }
+    public List<PropertyInfo> Properties { get; set; }
+    public DataTable Sheet { get; set; }
+}
+
 public class ExcelExEditor
 {
+    private static List<ExcelConfig> excelConfigs = new();
+    private static JsonSerializerSettings jsonSerializerSettings = new()
+    {
+        TypeNameHandling = TypeNameHandling.Objects,
+        Formatting = Formatting.Indented,
+    };
 
-    [MenuItem("Tools/生成配置CSV")]
+    [MenuItem("Tools/ExcelToJson")]
     public static void GenerateConfigs()
     {
         DeleteAllOldFiles();
 
-        var excelDirPath = $"{Application.dataPath}/../Configs";
+        var excelDirPath = $"{Application.dataPath}/../ExcelConfigs";
         if (!Directory.Exists(excelDirPath))
         {
-            Debug.LogError("配置文件夹不存在");
-            return;
+            Directory.CreateDirectory(excelDirPath);
         }
 
         var excelFiles = Directory.GetFiles(excelDirPath);
@@ -34,154 +56,270 @@ public class ExcelExEditor
 
         foreach (var excelFile in excelFiles)
         {
-            ConvertExcelToCSV(excelFile);
+            ReadExcel(excelFile);
         }
-
-        ConfigCodeGenerator.GenerateConfigLoader();
 
         AssetDatabase.Refresh();
 
+        // 等待类型刷新完再导出 JSON
         EditorApplication.delayCall += () =>
         {
+            foreach (var excelConfig in excelConfigs)
+            {
+                GenerateConfigJson(excelConfig);
+            }
+
+            AssetDatabase.Refresh();
+            excelConfigs.Clear();
             Debug.Log("完成导出！");
         };
     }
 
-    /// <summary>
-    /// 将Excel文件转换为CSV文件
-    /// </summary>
-    /// <param name="excelFilePath">Excel文件路径</param>
-    private static void ConvertExcelToCSV(string excelFilePath)
+    // 读取Excel
+    private static void ReadExcel(string excelFilePath)
     {
-        try
+        using var stream = new FileStream(excelFilePath, FileMode.Open, FileAccess.Read);
+        using var reader = ExcelReaderFactory.CreateReader(stream);
+        string fileName = Path.GetFileNameWithoutExtension(excelFilePath);
+
+        var result = reader.AsDataSet();
+        var sheet = result.Tables[0];   // 获取第一个工作表
+        var rowComment = sheet.Rows[0]; // 字段注释
+        var row = sheet.Rows[1]; // 字段名
+        var rowType = sheet.Rows[2]; // 字段类型
+
+        var rowId = row.ItemArray[0];
+        if (rowId.ToString() != "id")
         {
-            string fileName = Path.GetFileNameWithoutExtension(excelFilePath);
-            // 读取Excel文件 根据后缀名判断是XLSX还是XLS
-            using var stream = new FileStream(excelFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            IWorkbook workbook = excelFilePath.EndsWith(".xlsx")
-                ? new XSSFWorkbook(stream)
-                : new HSSFWorkbook(stream);
-
-            // 获取第一个工作表
-            var sheet = workbook.GetSheetAt(0);
-            if (sheet == null || sheet.LastRowNum < 2) return;
-
-            // 构建CSV内容
-            var sb = new StringBuilder();
-            for (var rowIndex = 0; rowIndex <= sheet.LastRowNum; rowIndex++)
-            {
-                // 获取当前行
-                var row = sheet.GetRow(rowIndex);
-                if (row == null) continue;
-
-                // 获取当前行所有单元格的值
-                List<string> values = new List<string>();
-                for (var cellIndex = 0; cellIndex < row.LastCellNum; cellIndex++)
-                {
-                    // 获取当前单元格的值，并替换掉逗号和换行符
-                    var cell = row.GetCell(cellIndex)?.ToString() ?? "";
-                    // 替换逗号和所有类型的换行符
-                    cell = cell.Replace("\"", "\"\"")
-                        .Replace("\r\n", " ")
-                        .Replace("\n", " ")
-                        .Replace("\r", " ");
-                    // 如果单元格的值包含空格或逗号，则用双引号包裹
-                    if (cell.Contains(" ") || cell.Contains(",") || cell.Contains("\"\""))
-                    {
-                        cell = $"\"{cell}\"";
-                    }
-                    values.Add(cell);
-                }
-                // 将当前行的所有单元格的值拼接成一个字符串
-                var line = string.Join(",", values);
-                sb.AppendLine(line);
-            }
-
-            // 将CSV内容写入文件
-            var csvFilePath = Path.Combine(Application.dataPath, "Resources", "Configs", $"{fileName}Config.csv");
-            File.WriteAllText(csvFilePath, sb.ToString(), Encoding.UTF8);
-
-            // 将CSV文件转换为C#类
-            CSV2CSharp(csvFilePath);
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"转换Excel文件{excelFilePath}失败: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// 将CSV文件转换为C#类
-    /// </summary>
-    /// <param name="csvFilePath">CSV文件路径</param>
-    private static void CSV2CSharp(string csvFilePath)
-    {
-        var csvContent = File.ReadAllText(csvFilePath, Encoding.UTF8);
-        var lines = csvContent.Split('\n').Where(line => !string.IsNullOrWhiteSpace(line)).ToList();
-        if (lines.Count < 3) return;
-
-        var fieldComments = lines[0].Split(',');   // 字段注释
-        var fields = lines[1].Split(',');   // 字段名
-        var types = lines[2].Split(',');    // 字段类型
-
-        if (fields[0] != "id")
-        {
-            Debug.LogError("CSV文件第2行第1列必须是id");
+            Debug.LogError($"导出Configs错误！{fileName}表中第一列不是id！");
             return;
         }
 
-        var className = Path.GetFileNameWithoutExtension(csvFilePath);
-
-        var sb = new StringBuilder();
-
-        sb.AppendLine("using System;");
-
-        // 判断是否需要 UnityEngine 引用
-        if (types.Any(type => RequiresUnityEngineNamespace(type)))
+        List<PropertyInfo> properties = new();
+        for (var i = 0; i < row.ItemArray.Length; i++)
         {
-            sb.AppendLine("using UnityEngine;");
+            var comment = rowComment.ItemArray[i].ToString().Trim();
+            var field = row.ItemArray[i].ToString().Trim();
+            var type = rowType.ItemArray[i].ToString().Trim();
+
+            if (string.IsNullOrEmpty(field) || string.IsNullOrEmpty(type)) break;
+
+            properties.Add(new PropertyInfo
+            {
+                Name = field,
+                Type = type,
+                Comment = comment
+            });
         }
-
-        sb.AppendLine();
-        sb.AppendLine($"public class {className} : BaseConfig");
-        sb.AppendLine("{");
-
-        for (var i = 0; i < types.Length; i++)
+        GenrateConfigClass(properties, fileName);
+        excelConfigs.Add(new ExcelConfig
         {
-            string type = types[i].Trim();
-            string field = fields[i].Trim();
-            if (field == "id" && i == 0)
-            {
-                continue;
-            }
-            if (i == types.Length - 1)
-            {
-                field = field.TrimEnd('\r', '\n');
-            }
-            string comment = fieldComments != null && i < fieldComments.Length ? fieldComments[i].Trim() : null;
-            if (!string.IsNullOrEmpty(comment))
-            {
-                sb.AppendLine($"    /// <summary>");
-                sb.AppendLine($"    /// {comment}");
-                sb.AppendLine($"    /// </summary>");
-            }
-            sb.AppendLine($"    public {type} {field};");
-        }
-
-        sb.AppendLine("}");
-
-        var classPath = Path.Combine(Application.dataPath, "Scripts", "Configs", $"{className}.cs");
-        File.WriteAllText(classPath, sb.ToString(), Encoding.UTF8);
+            ConfigName = fileName,
+            Properties = properties,
+            Sheet = sheet
+        });
     }
 
     /// <summary>
-    /// 判断是否需要 UnityEngine 命名空间
+    /// 生成配置类文件
     /// </summary>
-    /// <param name="typeStr">类型字符串</param>
-    /// <returns>是否需要 UnityEngine 命名空间</returns>
-    private static bool RequiresUnityEngineNamespace(string typeStr)
+    /// <param name="properties"></param>
+    /// <param name="configName"></param>
+    private static void GenrateConfigClass(List<PropertyInfo> properties, string configName)
     {
-        return typeStr.ToLower().Trim() is "vector2" or "vector3";
+        var filePath = Path.Combine(Application.dataPath, "Scripts", "Configs", $"{configName}Config.cs");
+        var fileDir = Path.GetDirectoryName(filePath);
+        if (!Directory.Exists(fileDir)) Directory.CreateDirectory(fileDir);
+        if (File.Exists(filePath))
+        {
+            Debug.LogError($"配置类已存在！{filePath}");
+            return;
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"public class {configName}Config : BaseConfig");
+        sb.AppendLine("{");
+        foreach (var property in properties)
+        {
+            if (property.Name == "id") continue;
+            if (!string.IsNullOrEmpty(property.Comment))
+            {
+                sb.AppendLine($"    /// <summary>");
+                sb.AppendLine($"    /// {property.Comment}");
+                sb.AppendLine($"    /// </summary>");
+            }
+            sb.AppendLine($"    public {property.Type} {property.Name};");
+        }
+        sb.AppendLine("}");
+        File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+    }
+
+    /// <summary>
+    /// 生成配置JSON文件
+    /// </summary>
+    /// <param name="excelConfig"></param>
+    private static void GenerateConfigJson(ExcelConfig excelConfig)
+    {
+        var filePath = Path.Combine(Application.dataPath, "Resources", "JsonConfigs", $"{excelConfig.ConfigName}Config.json");
+        var fileDir = Path.GetDirectoryName(filePath);
+        if (!Directory.Exists(fileDir)) Directory.CreateDirectory(fileDir);
+
+        Dictionary<string, BaseConfig> rawDataDict = new();
+
+        for (var i = 3; i < excelConfig.Sheet.Rows.Count; i++)
+        {
+            var row = excelConfig.Sheet.Rows[i];
+            if (row == null) break;
+
+            StringBuilder sb = new();
+            sb.Append("{");
+            for (var j = 0; j <= row.ItemArray.Length && j < excelConfig.Properties.Count; j++)
+            {
+                var item = row.ItemArray[j];
+                if (item == null) continue;
+
+                var value = item.ToString().Replace(@"\", @"\\");
+
+                if (string.IsNullOrEmpty(value))
+                {
+                    Debug.LogWarning($"有空值！{excelConfig.ConfigName}表中第{i + 1}行第{j + 1}列（字段名：{excelConfig.Properties[j].Name}）的值为空！");
+                }
+
+                if (excelConfig.Properties[j].Type == "bool")
+                {
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        value = "0";
+                    }
+
+                    // 布尔类型
+                    if (value.ToLower() != "true" && value.ToLower() != "false")
+                    {
+                        value = value == "0" ? "false" : "true";
+                    }
+                    else
+                    {
+                        value = value.ToLower(); // "TRUE" -> "true", "FALSE" -> "false"
+                    }
+
+                    sb.Append($"\"{excelConfig.Properties[j].Name}\":{value}");
+                }
+                else if (excelConfig.Properties[j].Type == "int"
+                    || excelConfig.Properties[j].Type == "long"
+                    || excelConfig.Properties[j].Type == "float"
+                    || excelConfig.Properties[j].Type == "double")
+                {
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        value = "0";
+                    }
+
+                    // 数值类型
+                    sb.Append($"\"{excelConfig.Properties[j].Name}\":{value}");
+                }
+                else if (excelConfig.Properties[j].Type.Contains("[]"))
+                {
+                    // 处理数组类型（支持数字数组和字符串数组）
+                    if (excelConfig.Properties[j].Type == "string[]")
+                    {
+                        // 使用 ParseCsvStyleArray 解析复杂字符串
+                        var parsedValues = ParseCsvStyleArray(value);
+                        var escapedValues = parsedValues
+                            .Select(s => $"\"{s.Replace("\"", "\\\"")}\""); // 转义双引号
+                        sb.Append($"\"{excelConfig.Properties[j].Name}\":[{string.Join(",", escapedValues)}]");
+                    }
+                    else
+                    {
+                        // 其他数组（如 int[]、float[]）
+                        sb.Append($"\"{excelConfig.Properties[j].Name}\":[{value}]");
+                    }
+                }
+                else
+                {
+                    // 字符串类型
+                    value = value.Replace("\"", "\\\""); // 转义双引号
+                    sb.Append($"\"{excelConfig.Properties[j].Name}\":\"{value}\"");
+                }
+
+                if (j < row.ItemArray.Length - 1)
+                {
+                    sb.Append(",");
+                }
+            }
+            sb.Append("}");
+
+            var type = Type.GetType($"{excelConfig.ConfigName}Config, Assembly-CSharp");
+            if (type == null)
+            {
+                Debug.LogError($"找不到类型: {excelConfig.ConfigName}Config，可能没有编译完成");
+                continue;
+            }
+
+            try
+            {
+                var config = JsonConvert.DeserializeObject(sb.ToString(), type) as BaseConfig;
+                if (config == null || string.IsNullOrEmpty(config.id)) continue;
+                rawDataDict.Add(config.id, config);
+                Debug.Log(config.id);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"解析错误: {ex}");
+                break;
+            }
+        }
+
+        var json = JsonConvert.SerializeObject(rawDataDict, jsonSerializerSettings);
+        File.WriteAllText(filePath, json, Encoding.UTF8);
+    }
+
+    /// <summary>
+    /// 解析类似 CSV 的字符串数组（支持引号包裹的逗号）
+    /// </summary>
+    private static List<string> ParseCsvStyleArray(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return new List<string>();
+
+        var result = new List<string>();
+        var inQuotes = false;
+        var currentItem = new StringBuilder();
+
+        for (int i = 0; i < input.Length; i++)
+        {
+            char c = input[i];
+
+            if (c == '"')
+            {
+                // 检查是否是转义的引号（如 `""`）
+                if (i + 1 < input.Length && input[i + 1] == '"')
+                {
+                    currentItem.Append('"');
+                    i++; // 跳过下一个引号
+                }
+                else
+                {
+                    inQuotes = !inQuotes; // 进入/退出引号模式
+                }
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                // 遇到逗号且不在引号内，分割当前元素
+                result.Add(currentItem.ToString());
+                currentItem.Clear();
+            }
+            else
+            {
+                currentItem.Append(c);
+            }
+        }
+
+        // 添加最后一个元素
+        if (currentItem.Length > 0)
+        {
+            result.Add(currentItem.ToString());
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -190,13 +328,13 @@ public class ExcelExEditor
     private static void DeleteAllOldFiles()
     {
         var csDir = Path.Combine(Application.dataPath, "Scripts", "Configs");
-        var csvDir = Path.Combine(Application.dataPath, "Resources", "Configs");
+        var jsonDir = Path.Combine(Application.dataPath, "Resources", "JsonConfigs");
 
         if (Directory.Exists(csDir)) Directory.Delete(csDir, true);
         Directory.CreateDirectory(csDir);
 
-        if (Directory.Exists(csvDir)) Directory.Delete(csvDir, true);
-        Directory.CreateDirectory(csvDir);
+        if (Directory.Exists(jsonDir)) Directory.Delete(jsonDir, true);
+        Directory.CreateDirectory(jsonDir);
 
         AssetDatabase.Refresh();
     }

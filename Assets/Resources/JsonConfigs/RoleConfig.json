@@ -1,0 +1,37 @@
+﻿{
+  "$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[BaseConfig, Assembly-CSharp]], mscorlib",
+  "1001": {
+    "$type": "RoleConfig, Assembly-CSharp",
+    "name": "墨刻",
+    "hp": 0,
+    "die": false,
+    "pos": [],
+    "target": [
+      5.0,
+      -6.0
+    ],
+    "duiyou": [],
+    "id": "1001"
+  },
+  "1002": {
+    "$type": "RoleConfig, Assembly-CSharp",
+    "name": "",
+    "hp": 100,
+    "die": false,
+    "pos": [
+      1.0,
+      2.0,
+      3.0
+    ],
+    "target": [
+      -2.0,
+      2.0
+    ],
+    "duiyou": [
+      "文聿",
+      "武:特殊",
+      "君生我未生,我生君已老"
+    ],
+    "id": "1002"
+  }
+}
