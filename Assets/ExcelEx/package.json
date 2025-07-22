@@ -1,0 +1,17 @@
+{
+  "name": "com.wenyu.excleex",
+  "displayName": "Excel Ex",
+  "author": {
+    "name": "WenYu",
+    "url": "https://github.com/mook-wenyu"
+  },
+  "version": "0.1.0",
+  "unity": "2021.4",
+  "description": "Excel 自动转为 Json",
+  "keywords": [
+    "excel",
+    "json"
+  ],
+  "license":"Apache-2.0",
+  "dependencies": {}
+} 

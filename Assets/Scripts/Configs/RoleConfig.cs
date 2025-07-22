@@ -1,4 +1,5 @@
-﻿public class RoleConfig : BaseConfig
+﻿using ExcelEx;
+public class RoleConfig : BaseConfig
 {
     /// <summary>
     /// 名字

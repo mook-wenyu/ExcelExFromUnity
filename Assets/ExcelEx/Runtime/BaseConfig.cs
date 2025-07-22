@@ -2,7 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BaseConfig
+namespace ExcelEx
 {
-    public string id;
+    public class BaseConfig
+    {
+        public string id;
+    }
 }

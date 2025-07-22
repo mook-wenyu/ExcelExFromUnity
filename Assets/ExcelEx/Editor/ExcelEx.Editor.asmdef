@@ -1,0 +1,18 @@
+{
+    "name": "ExcelEx.Editor",
+    "rootNamespace": "ExcelEx",
+    "references": [
+        "GUID:d4a9ee19e55cb5f4d9a1dcb68a74e407"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
