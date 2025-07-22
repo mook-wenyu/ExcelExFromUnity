@@ -8,16 +8,13 @@ namespace ExcelEx.Editor
 {
     public class ExcelExporterSettings : ScriptableObject
     {
-        [Tooltip("Excel 文件夹路径")]
-        public string excelRelativePath = "ExcelConfigs";
-
         [Tooltip("生成 .cs 文件的相对路径（基于 Assets）")]
         public string csRelativePath = "Scripts/Configs";
 
         [Tooltip("生成 .json 文件的相对路径（基于 Assets）")]
         public string jsonRelativePath = "Resources/JsonConfigs";
 
-        public string ExcelFullPath => Path.Combine(Application.dataPath, excelRelativePath);
+        public string ExcelFullPath => Path.Combine(Application.dataPath, "Editor", "ExcelConfigs");
         public string CsFullPath => Path.Combine(Application.dataPath, csRelativePath);
         public string JsonFullPath => Path.Combine(Application.dataPath, jsonRelativePath);
 
