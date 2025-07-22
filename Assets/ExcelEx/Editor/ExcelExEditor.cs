@@ -141,6 +141,8 @@ namespace ExcelEx.Editor
             }
 
             var sb = new StringBuilder();
+            sb.AppendLine($"using ExcelEx;");
+            sb.AppendLine();
             sb.AppendLine($"public class {configName}Config : BaseConfig");
             sb.AppendLine("{");
             foreach (var property in properties)
