@@ -29,7 +29,7 @@ namespace ExcelEx.Editor
         {
             _watcher?.Dispose();
 
-            string root = Path.Combine(Application.dataPath, "Editor", "ExcelConfigs");
+            string root = ExcelExporterSettings.Instance.ExcelFullPath;
             if (!Directory.Exists(root)) Directory.CreateDirectory(root);
 
             _watcher = new FileSystemWatcher(root)

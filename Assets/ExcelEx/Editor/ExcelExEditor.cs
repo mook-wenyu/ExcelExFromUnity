@@ -32,7 +32,7 @@ namespace ExcelEx.Editor
     public class ExcelExEditor
     {
         private static List<ExcelConfig> _excelConfigs = new();
-        private static readonly string[] _extensions = {".xlsx", ".xls"};
+        private static readonly string[] _extensions = { ".xlsx", ".xls" };
         private static readonly JsonSerializerSettings _jsonSerializerSettings = new()
         {
             TypeNameHandling = TypeNameHandling.Objects,
@@ -53,7 +53,7 @@ namespace ExcelEx.Editor
                     string fileName = Path.GetFileName(file);
                     string ext = Path.GetExtension(file);
                     return !fileName.StartsWith("~$") &&
-                           _extensions.Contains(ext, StringComparer.OrdinalIgnoreCase);
+                            _extensions.Contains(ext, StringComparer.OrdinalIgnoreCase);
                 })
                 .ToArray();
             if (excelFiles.Length == 0)
@@ -209,9 +209,18 @@ namespace ExcelEx.Editor
                         sb.Append($"\"{excelConfig.Properties[j].Name}\":{value}");
                     }
                     else if (excelConfig.Properties[j].Type == "int"
-                             || excelConfig.Properties[j].Type == "long"
-                             || excelConfig.Properties[j].Type == "float"
-                             || excelConfig.Properties[j].Type == "double")
+                                || excelConfig.Properties[j].Type == "long"
+                                || excelConfig.Properties[j].Type == "float"
+                                || excelConfig.Properties[j].Type == "double"
+                                || excelConfig.Properties[j].Type == "decimal"
+                                || excelConfig.Properties[j].Type == "byte"
+                                || excelConfig.Properties[j].Type == "short"
+                                || excelConfig.Properties[j].Type == "uint"
+                                || excelConfig.Properties[j].Type == "ulong"
+                                || excelConfig.Properties[j].Type == "sbyte"
+                                || excelConfig.Properties[j].Type == "ushort"
+                                || excelConfig.Properties[j].Type == "char"
+                                )
                     {
                         if (string.IsNullOrEmpty(value))
                         {
@@ -261,8 +270,7 @@ namespace ExcelEx.Editor
 
                 try
                 {
-                    var config = JsonConvert.DeserializeObject(sb.ToString(), type) as BaseConfig;
-                    if (config == null || string.IsNullOrEmpty(config.id)) continue;
+                    if (JsonConvert.DeserializeObject(sb.ToString(), type) is not BaseConfig config || string.IsNullOrEmpty(config.id)) continue;
                     rawDataDict.Add(config.id, config);
                 }
                 catch (Exception ex)
@@ -332,7 +340,7 @@ namespace ExcelEx.Editor
         {
             var settings = ExcelExporterSettings.Instance;
 
-            if (Directory.Exists(settings.CsFullPath))   Directory.Delete(settings.CsFullPath, true);
+            if (Directory.Exists(settings.CsFullPath)) Directory.Delete(settings.CsFullPath, true);
             if (Directory.Exists(settings.JsonFullPath)) Directory.Delete(settings.JsonFullPath, true);
             Directory.CreateDirectory(settings.CsFullPath);
             Directory.CreateDirectory(settings.JsonFullPath);
