@@ -14,14 +14,18 @@ ExcelExFromUnity 是一个 Unity 插件，用于将 Excel 配置文件导出为 
 
 ## 添加到项目
 
-### 使用包管理器安装（推荐）
+### 安装依赖
+
+1. 打开 Unity 的 Package Manager (菜单: Window > Package Manager)
+2. 点击左上角的 "+" 按钮，选择 "Add package by name..."
+3. 输入 `com.unity.nuget.newtonsoft-json` 并点击 "Add" 按钮
+
+### 使用包管理器安装
 
 1. 打开 Unity 的 Package Manager (菜单: Window > Package Manager)
 2. 点击左上角的 "+" 按钮，选择 "Add package from git URL..."
-3. 输入以下URL: `https://github.com/mook-wenyu/ExcelExFromUnity.git?path=Assets/Scripts/ExcelEx`
+3. 输入以下URL: `https://github.com/mook-wenyu/ExcelExFromUnity.git?path=Assets/ExcelEx`
 4. 点击 "Add" 按钮完成安装
-5. 依赖项：
-   - Unity包管理器，按名称添加包：com.unity.nuget.newtonsoft-json
 
 ## 使用方法
 
