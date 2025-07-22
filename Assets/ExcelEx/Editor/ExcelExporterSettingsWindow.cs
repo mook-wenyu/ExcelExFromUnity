@@ -19,6 +19,9 @@ namespace ExcelEx.Editor
 
             EditorGUILayout.HelpBox("相对路径：基于 Assets", MessageType.Info);
 
+            settings.excelRelativePath =
+                EditorGUILayout.TextField("Excel Input Path", settings.excelRelativePath);
+
             settings.csRelativePath =
                 EditorGUILayout.TextField("CS Output Path", settings.csRelativePath);
 

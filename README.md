@@ -10,25 +10,29 @@ ExcelExFromUnity 是一个 Unity 插件，用于将 Excel 配置文件导出为 
 - 自动生成配置类和加载器代码
 - 支持多种数据类型：int, long, float, double, bool, string 及其数组
 - 支持字符串数组中包含逗号的复杂格式
+- 支持 Excel 文件变更的自动监控和重新导出
 
 ## 添加到项目
 
-### 手动添加源代码
+### 使用包管理器安装（推荐）
 
-1. 将以下文件夹和文件添加到您的 Unity 项目中：
-   - Assets/Editor
-   - Assets/Editor/ExcelExEditor.cs
-   - Assets/Editor/ExcelDataReader (依赖文件夹)
-   - Assets/Editor/ExcelDataReader/ExcelDataReader
-   - Assets/Editor/ExcelDataReader/ExcelDataReader.DataSet
-
-   - Assets/Scripts/BaseConfigs
-   - Assets/Scripts/BaseConfigs/BaseConfig.cs
-   - Assets/Scripts/BaseConfigs/ConfigMgr.cs
-
+1. 打开 Unity 的 Package Manager (菜单: Window > Package Manager)
+2. 点击左上角的 "+" 按钮，选择 "Add package from git URL..."
+3. 输入以下URL: `https://github.com/mook-wenyu/ExcelExFromUnity.git?path=Assets/Scripts/ExcelEx`
+4. 点击 "Add" 按钮完成安装
+5. 依赖项：
    - Unity包管理器，按名称添加包：com.unity.nuget.newtonsoft-json
 
 ## 使用方法
+
+### 配置导出设置
+
+1. 在 Unity 编辑器中选择菜单 `Tools > Excel Exporter Settings`
+2. 设置以下路径：
+   - Excel Input Path: Excel 文件夹路径（默认为 "ExcelConfigs"）
+   - CS Output Path: 生成 C# 文件的路径（默认为 "Scripts/Configs"）
+   - JSON Output Path: 生成 JSON 文件的路径（默认为 "Resources/JsonConfigs"）
+3. 点击 "Save" 保存设置
 
 ### 配置文件格式要求
 
@@ -41,9 +45,13 @@ Excel 文件需按以下格式组织：
 
 ### 导出配置
 
-1. 将 Excel 配置文件放入项目根目录的 `ExcelConfigs` 文件夹中
-2. 在 Unity 编辑器中选择菜单 `Tools > ExcelToJson`
+1. 将 Excel 配置文件放入项目根目录的 `ExcelConfigs` 文件夹中（或自定义设置的路径）
+2. 在 Unity 编辑器中选择菜单 `Tools > Excel To Json`
 3. 插件会自动将 Excel 文件转换为 JSON 并生成对应的 C# 类
+
+### 自动监控
+
+插件会自动监控 Excel 文件的变更，当文件发生变化时会自动重新导出配置。
 
 ### 在代码中使用
 

@@ -39,17 +39,13 @@ namespace ExcelEx.Editor
             Formatting = Formatting.Indented,
         };
 
-        [MenuItem("Tools/ExcelToJson")]
+        [MenuItem("Tools/Excel To Json")]
         public static void GenerateConfigs()
         {
             DeleteAllOldFiles();
 
-            // var excelDirPath = $"{Application.dataPath}/../ExcelConfigs";
-            string excelDirPath = Path.Combine(Application.dataPath, "Editor", "ExcelConfigs");
-            if (!Directory.Exists(excelDirPath))
-            {
-                Directory.CreateDirectory(excelDirPath);
-            }
+            string excelDirPath = ExcelExporterSettings.Instance.ExcelFullPath;
+            if (!Directory.Exists(excelDirPath)) Directory.CreateDirectory(excelDirPath);
 
             string[] excelFiles = Directory.EnumerateFiles(excelDirPath)
                 .Where(file =>
