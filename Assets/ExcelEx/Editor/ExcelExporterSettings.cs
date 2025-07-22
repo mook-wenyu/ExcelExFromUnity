@@ -31,13 +31,11 @@ namespace ExcelEx.Editor
             {
                 if (_instance == null)
                 {
-                    string dir = Path.Combine("Assets");
-                    string path = Path.Combine(dir, AssetName);
+                    string path = Path.Combine("Assets", AssetName);
 
                     _instance = AssetDatabase.LoadAssetAtPath<ExcelExporterSettings>(path.Replace("\\", "/"));
                     if (_instance == null)
                     {
-                        Directory.CreateDirectory(dir);
                         _instance = CreateInstance<ExcelExporterSettings>();
                         AssetDatabase.CreateAsset(_instance, path.Replace("\\", "/"));
                         AssetDatabase.SaveAssets();
