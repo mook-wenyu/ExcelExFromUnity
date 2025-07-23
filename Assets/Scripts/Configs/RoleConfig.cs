@@ -1,4 +1,5 @@
 ﻿using ExcelEx;
+
 public class RoleConfig : BaseConfig
 {
     /// <summary>

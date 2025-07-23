@@ -10,7 +10,7 @@ namespace ExcelEx
 {
     public static class ConfigMgr
     {
-        private static Dictionary<string, Dictionary<string, BaseConfig>> _jsonData = new();
+        private static Dictionary<string, IReadOnlyDictionary<string, BaseConfig>> _jsonData = new();
 
         private static readonly JsonSerializerSettings _jsonSerializerSettings = new()
         {
@@ -53,7 +53,7 @@ namespace ExcelEx
         /// <typeparam name="T">配置类型</typeparam>
         /// <returns>配置数据列表</returns>
         [Preserve]
-        public static ReadOnlySpan<T> GetAll<T>() where T : BaseConfig
+        public static IReadOnlyCollection<T> GetAll<T>() where T : BaseConfig
         {
             var configName = typeof(T).Name;
 
@@ -63,7 +63,7 @@ namespace ExcelEx
             }
 
             Debug.LogWarning($"未找到类型 {configName} 的配置数据");
-            return new ReadOnlySpan<T>();
+            return new T[0];
         }
 
     }
