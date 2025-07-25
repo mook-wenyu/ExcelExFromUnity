@@ -32,7 +32,7 @@ namespace ExcelEx.Editor
     public class ExcelExEditor
     {
         private static List<ExcelConfig> _excelConfigs = new();
-        private static readonly string[] _extensions = { ".xlsx", ".xls" };
+        private static readonly string[] _extensions = {".xlsx", ".xls"};
         private static readonly JsonSerializerSettings _jsonSerializerSettings = new()
         {
             TypeNameHandling = TypeNameHandling.Objects,
@@ -53,7 +53,7 @@ namespace ExcelEx.Editor
                     string fileName = Path.GetFileName(file);
                     string ext = Path.GetExtension(file);
                     return !fileName.StartsWith("~$") &&
-                            _extensions.Contains(ext, StringComparer.OrdinalIgnoreCase);
+                           _extensions.Contains(ext, StringComparer.OrdinalIgnoreCase);
                 })
                 .ToArray();
             if (excelFiles.Length == 0)
@@ -76,7 +76,11 @@ namespace ExcelEx.Editor
 
             AssetDatabase.Refresh();
             _excelConfigs.Clear();
-            Debug.Log("完成导出！");
+
+            EditorApplication.delayCall += () =>
+            {
+                Debug.Log("主动导出完成！");
+            };
         }
 
         // 读取Excel
@@ -211,18 +215,18 @@ namespace ExcelEx.Editor
                         sb.Append($"\"{excelConfig.Properties[j].Name}\":{value}");
                     }
                     else if (excelConfig.Properties[j].Type == "int"
-                                || excelConfig.Properties[j].Type == "long"
-                                || excelConfig.Properties[j].Type == "float"
-                                || excelConfig.Properties[j].Type == "double"
-                                || excelConfig.Properties[j].Type == "decimal"
-                                || excelConfig.Properties[j].Type == "byte"
-                                || excelConfig.Properties[j].Type == "short"
-                                || excelConfig.Properties[j].Type == "uint"
-                                || excelConfig.Properties[j].Type == "ulong"
-                                || excelConfig.Properties[j].Type == "sbyte"
-                                || excelConfig.Properties[j].Type == "ushort"
-                                || excelConfig.Properties[j].Type == "char"
-                                )
+                             || excelConfig.Properties[j].Type == "long"
+                             || excelConfig.Properties[j].Type == "float"
+                             || excelConfig.Properties[j].Type == "double"
+                             || excelConfig.Properties[j].Type == "decimal"
+                             || excelConfig.Properties[j].Type == "byte"
+                             || excelConfig.Properties[j].Type == "short"
+                             || excelConfig.Properties[j].Type == "uint"
+                             || excelConfig.Properties[j].Type == "ulong"
+                             || excelConfig.Properties[j].Type == "sbyte"
+                             || excelConfig.Properties[j].Type == "ushort"
+                             || excelConfig.Properties[j].Type == "char"
+                    )
                     {
                         if (string.IsNullOrEmpty(value))
                         {

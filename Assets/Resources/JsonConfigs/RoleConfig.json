@@ -33,15 +33,5 @@
       "君生我未生,我生君已老"
     ],
     "id": "1002"
-  },
-  "1003": {
-    "$type": "RoleConfig, Assembly-CSharp",
-    "name": "",
-    "hp": 0,
-    "die": false,
-    "pos": [],
-    "target": [],
-    "duiyou": [],
-    "id": "1003"
   }
 }
